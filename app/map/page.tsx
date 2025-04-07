@@ -1,38 +1,25 @@
 "use client"
 
+import { useEffect, useState } from "react"
 import { useSearchParams } from "next/navigation"
-import { useEffect, useState, Suspense } from "react"
 import { ArrowLeft } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import AccidentMap from "@/components/accident-map"
 
-export const dynamic = "force-dynamic" // <- THIS is the fix
-
 export default function MapPage() {
-  return (
-    <Suspense fallback={<div className="min-h-screen flex justify-center items-center">Loading map...</div>}>
-      <MapPageContent />
-    </Suspense>
-  )
-}
-
-function MapPageContent() {
   const searchParams = useSearchParams()
-
-  const [accidentId, setAccidentId] = useState("Unknown")
-  const [accidentLat, setAccidentLat] = useState(0)
-  const [accidentLng, setAccidentLng] = useState(0)
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null)
 
-  useEffect(() => {
-    const id = searchParams.get("id") || "Unknown"
-    const lat = parseFloat(searchParams.get("lat") || "0")
-    const lng = parseFloat(searchParams.get("lng") || "0")
+  const accidentId = searchParams.get("id") || "Unknown"
+  const accidentLat = Number.parseFloat(searchParams.get("lat") || "0")
+  const accidentLng = Number.parseFloat(searchParams.get("lng") || "0")
 
-    setAccidentId(id)
-    setAccidentLat(lat)
-    setAccidentLng(lng)
+  useEffect(() => {
+    setUserLocation({
+      lat: accidentLat - 0.01,
+      lng: accidentLng - 0.01,
+    })
 
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
@@ -42,18 +29,13 @@ function MapPageContent() {
             lng: position.coords.longitude,
           })
         },
-        () => {
-          setUserLocation({ lat: lat - 0.01, lng: lng - 0.01 }) // fallback
-        }
+        (error) => {
+          console.log("Using fallback location - geolocation error:", error.message)
+        },
+        { timeout: 5000, maximumAge: 60000 },
       )
-    } else {
-      setUserLocation({ lat: lat - 0.01, lng: lng - 0.01 })
     }
-  }, [searchParams])
-
-  if (!userLocation) {
-    return <div className="min-h-screen flex justify-center items-center">Loading location...</div>
-  }
+  }, [accidentLat, accidentLng])
 
   return (
     <main className="min-h-screen bg-white">
@@ -74,7 +56,16 @@ function MapPageContent() {
           </div>
 
           <div className="h-[500px] relative">
-            <AccidentMap accidentLocation={{ lat: accidentLat, lng: accidentLng }} userLocation={userLocation} />
+            {userLocation ? (
+              <AccidentMap
+                accidentLocation={{ lat: accidentLat, lng: accidentLng }}
+                userLocation={userLocation}
+              />
+            ) : (
+              <div className="flex items-center justify-center h-full bg-gray-100">
+                <p className="text-gray-600">Loading map with simulated location...</p>
+              </div>
+            )}
           </div>
         </Card>
 
