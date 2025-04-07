@@ -1,13 +1,22 @@
-"use client"
-
-import { useEffect, useState } from "react"
-import { useSearchParams } from "next/navigation"
+import { Suspense } from "react"
 import { ArrowLeft } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import AccidentMap from "@/components/accident-map"
+import { useEffect, useState } from "react"
+import { useSearchParams } from "next/navigation"
 
 export default function MapPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen flex justify-center items-center text-lg">Loading map...</div>}>
+      <MapPageContent />
+    </Suspense>
+  )
+}
+
+function MapPageContent() {
+  "use client"
+
   const searchParams = useSearchParams()
   const [accidentId, setAccidentId] = useState("Unknown")
   const [accidentLat, setAccidentLat] = useState(0)
@@ -23,7 +32,6 @@ export default function MapPage() {
     setAccidentLat(lat)
     setAccidentLng(lng)
 
-    // Fallback location slightly offset
     setUserLocation({ lat: lat - 0.01, lng: lng - 0.01 })
 
     if (navigator.geolocation) {
@@ -69,7 +77,10 @@ export default function MapPage() {
           </div>
 
           <div className="h-[500px] relative">
-            <AccidentMap accidentLocation={{ lat: accidentLat, lng: accidentLng }} userLocation={userLocation} />
+            <AccidentMap
+              accidentLocation={{ lat: accidentLat, lng: accidentLng }}
+              userLocation={userLocation}
+            />
           </div>
         </Card>
 
