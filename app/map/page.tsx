@@ -9,43 +9,46 @@ import AccidentMap from "@/components/accident-map"
 
 export default function MapPage() {
   const searchParams = useSearchParams()
+  const [accidentId, setAccidentId] = useState("Unknown")
+  const [accidentLat, setAccidentLat] = useState(0)
+  const [accidentLng, setAccidentLng] = useState(0)
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null)
 
-  const accidentId = searchParams.get("id") || "Unknown"
-  const accidentLat = Number.parseFloat(searchParams.get("lat") || "0")
-  const accidentLng = Number.parseFloat(searchParams.get("lng") || "0")
-
   useEffect(() => {
-    // Set a default user location instead of relying on geolocation
-    // This ensures the map works even when geolocation is disabled
-    setUserLocation({
-      // Default location slightly offset from accident location
-      lat: accidentLat - 0.01,
-      lng: accidentLng - 0.01,
-    })
+    const id = searchParams.get("id") || "Unknown"
+    const lat = parseFloat(searchParams.get("lat") || "0")
+    const lng = parseFloat(searchParams.get("lng") || "0")
 
-    // Try to get user's location, but don't rely on it
+    setAccidentId(id)
+    setAccidentLat(lat)
+    setAccidentLng(lng)
+
+    // Fallback location slightly offset
+    setUserLocation({ lat: lat - 0.01, lng: lng - 0.01 })
+
     if (navigator.geolocation) {
-      try {
-        navigator.geolocation.getCurrentPosition(
-          (position) => {
-            setUserLocation({
-              lat: position.coords.latitude,
-              lng: position.coords.longitude,
-            })
-          },
-          (error) => {
-            console.log("Using fallback location - geolocation error:", error.message)
-            // We already set a fallback location above, so no need to do anything here
-          },
-          { timeout: 5000, maximumAge: 60000 },
-        )
-      } catch (error) {
-        console.log("Geolocation API unavailable, using fallback location")
-        // Fallback already set above
-      }
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          setUserLocation({
+            lat: position.coords.latitude,
+            lng: position.coords.longitude,
+          })
+        },
+        (error) => {
+          console.log("Geolocation error, using fallback:", error.message)
+        },
+        { timeout: 5000, maximumAge: 60000 }
+      )
     }
-  }, [accidentLat, accidentLng])
+  }, [searchParams])
+
+  if (userLocation === null) {
+    return (
+      <main className="min-h-screen flex items-center justify-center bg-white">
+        <p className="text-gray-600 text-lg">Loading map...</p>
+      </main>
+    )
+  }
 
   return (
     <main className="min-h-screen bg-white">
@@ -66,13 +69,7 @@ export default function MapPage() {
           </div>
 
           <div className="h-[500px] relative">
-            {userLocation ? (
-              <AccidentMap accidentLocation={{ lat: accidentLat, lng: accidentLng }} userLocation={userLocation} />
-            ) : (
-              <div className="flex items-center justify-center h-full bg-gray-100">
-                <p className="text-gray-600">Loading map with simulated location...</p>
-              </div>
-            )}
+            <AccidentMap accidentLocation={{ lat: accidentLat, lng: accidentLng }} userLocation={userLocation} />
           </div>
         </Card>
 
@@ -117,4 +114,3 @@ export default function MapPage() {
     </main>
   )
 }
-
